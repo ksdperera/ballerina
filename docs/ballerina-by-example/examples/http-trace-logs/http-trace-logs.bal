@@ -1,24 +1,24 @@
 import ballerina.net.http;
 
-endpoint<http:Service> helloWorldEP {
+endpoint http:ServiceEndpoint helloWorldEP {
     port:9090
+};
+
+endpoint http:ClientEndpoint backendClientEP {
+    targets: [{uri: "http://httpstat.us"}]
+};
+
+@http:ServiceConfig {
+    basePath:"/hello"
 }
+service<http:Service> helloWorld bind helloWorldEP {
 
-endpoint<http:Client> ep {
-    serviceUri: "http://httpstat.us"
-}
-
-@http:serviceConfig { basePath:"/hello", endpoints:[helloWorldEP] }
-service<http:Service> helloWorld {
-
-    @http:resourceConfig {
+    @http:ResourceConfig {
         methods:["GET"],
         path:"/"
     }
-    resource sayHello (http:ServerConnector conn, http:Request req) {
-        http:Response backendResponse;
-        backendResponse, _ = ep -> forward("/200", req);
-
-        _ = conn -> forward(backendResponse);
+    sayHello (endpoint outboundEP, http:Request request) {
+        http:Response backendResponse =? backendClientEP -> forward("/200", request);
+        _ = outboundEP -> forward(backendResponse);
     }
 }
